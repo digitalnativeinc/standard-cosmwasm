@@ -1,0 +1,31 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "contracts/token/src",
+  "targets": {
+    "build": {
+      "executor": "@digitalnative/cosmwasm:build",
+      "options": {
+        "release": false
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "test": {
+      "executor": "@digitalnative/cosmwasm:test",
+      "options": {}
+    },
+    "lint": {
+      "executor": "@digitalnative/cosmwasm:clippy",
+      "options": {
+        "fix": false,
+        "failOnWarnings": true,
+        "noDeps": true
+      }
+    }
+  },
+  "tags": []
+}
