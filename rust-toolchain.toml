@@ -1,2 +1,4 @@
 [toolchain]
-channel = "stable"
+channel = "nightly-2022-01-26"
+components = []
+targets = ["wasm32-unknown-unknown"]

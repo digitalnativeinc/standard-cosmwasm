@@ -3,11 +3,16 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build:cloud": "NX_BRANCH=testing npx nx run token:build"
+    "build:cloud": "NX_BRANCH=testing npx nx build",
+    "wasm": "nx wasm",
+    "generate": "nx generate nxcw:osmosis",
+    "schema": "nx schema",
+    "test": "nx test"
   },
   "private": true,
   "dependencies": {
-    "@digitalnative/cosmwasm": "^0.0.15"
+    "node-json-minify": "^3.0.0",
+    "nxcw": "^0.0.4"
   },
   "devDependencies": {
     "@nrwl/cli": "14.3.6",

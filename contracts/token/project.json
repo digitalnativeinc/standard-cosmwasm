@@ -4,7 +4,7 @@
   "sourceRoot": "contracts/token/src",
   "targets": {
     "build": {
-      "executor": "@digitalnative/cosmwasm:build",
+      "executor": "nxcw:build",
       "options": {
         "release": false
       },
@@ -15,16 +15,37 @@
       }
     },
     "test": {
-      "executor": "@digitalnative/cosmwasm:test",
+      "executor": "nxcw:test",
       "options": {}
     },
     "lint": {
-      "executor": "@digitalnative/cosmwasm:clippy",
+      "executor": "nxcw:clippy",
       "options": {
         "fix": false,
         "failOnWarnings": true,
         "noDeps": true
       }
+    },
+    "wasm": {
+      "executor": "nxcw:wasm",
+      "options": {
+        "release": true,
+        "target": "wasm32-unknown-unknown"
+      },
+      "configurations": {
+        "production": {
+          "release": true,
+          "target": "wasm32-unknown-unknown"
+        }
+      }
+    },
+    "optimize": {
+      "executor": "nxcw:optimize",
+      "options": {}
+    },
+    "schema": {
+      "executor": "nxcw:schema",
+      "options": {}
     }
   },
   "tags": []

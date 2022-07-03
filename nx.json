@@ -29,5 +29,5 @@
     "appsDir": "packages",
     "libsDir": "packages"
   },
-  "plugins": ["@digitalnative/cosmwasm"]
+  "plugins": ["nxcw"]
 }

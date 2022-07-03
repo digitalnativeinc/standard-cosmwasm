@@ -2,8 +2,10 @@
   "$schema": "./node_modules/nx/schemas/workspace-schema.json",
   "version": 2,
   "projects": {
-    "oracle": "contracts/oracle",
+    "nft": "contracts/nft",
+    "primitives": "contracts/primitives",
     "token": "contracts/token",
-    "protocol": "contracts/protocol"
+    "vault": "contracts/vault",
+    "vault_manager": "contracts/vault_manager"
   }
 }

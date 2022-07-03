@@ -1,6 +1,8 @@
 [workspace]
 members = [
-    "contracts/oracle",
-    "contracts/token",
-    "contracts/protocol"
+    "contracts/vault",
+    "contracts/vault_manager",
+    "contracts/nft",
+    "contracts/primitives",
+    "contracts/token"
 ]
