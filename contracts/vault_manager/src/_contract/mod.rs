@@ -4,8 +4,7 @@ use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{State, STATE};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:stnd-vault-manager";
@@ -18,5 +17,5 @@ pub mod execute;
 
 pub mod query;
 
-#[cfg(test)]
-pub mod test;
+//#[cfg(test)]
+//pub mod test;

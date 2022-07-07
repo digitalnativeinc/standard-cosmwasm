@@ -25,15 +25,15 @@ pub struct VaultConfig {
     pub pool_id: u64
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, Default)]
 pub struct Config {
-    pub v1: Addr,
-    pub stablecoin: Addr,
-    pub admin: Addr,
+    pub v1: String,
+    pub stablecoin: String,
+    pub factory: String,
+    pub admin: String,
     pub vault_code_id: u64,
     pub initialized: bool
 }
 
-pub const STATE: Item<State> = Item::new("state");
 pub const VAULTCONFIG: Map<String, VaultConfig> = Map::new("vault_config");
 pub const CONFIG: Item<Config> = Item::new("config");
