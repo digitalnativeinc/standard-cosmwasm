@@ -11,3 +11,7 @@ fn query_count(deps: Deps) -> StdResult<CountResponse> {
     let state = STATE.load(deps.storage)?;
     Ok(CountResponse { count: state.count })
 }
+
+fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
+    
+}

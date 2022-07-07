@@ -8,7 +8,7 @@ use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{State, STATE};
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:osmo";
+const CONTRACT_NAME: &str = "crates.io:stnd-vault-manager";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 

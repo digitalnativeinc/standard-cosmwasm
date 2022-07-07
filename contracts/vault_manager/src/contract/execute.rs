@@ -1,8 +1,8 @@
-use cosmwasm_std::{Coin, CosmosMsg, Uint128, WasmMsg, SubMsg, Empty};
+use cosmwasm_std::{Coin, CosmosMsg, Uint128, WasmMsg, SubMsg, Empty, Addr};
 use primitives::functions::_is_valid_cdp;
 
 use super::*;
-use crate::state::{Config, VAULTCONFIG, CONFIG};
+use crate::state::{VAULTCONFIG, CONFIG};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
@@ -12,22 +12,34 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Increment {} => try_increment(deps),
-        ExecuteMsg::Reset { count } => try_reset(deps, info, count),
-        ExecuteMsg::Initialize { vault_code_id } => todo!(),
+        ExecuteMsg::Initialize { vault_code_id_, v1_, stablecoin_, admin_ } => try_initialize(deps, info, vault_code_id_, v1_, stablecoin_, admin_),
         ExecuteMsg::CreateVault { dAmount } => todo!(),
-        ExecuteMsg::InitializeConfig {
+        ExecuteMsg::SetVaultConfig {
             clt,
             c_decimal_,
             pool_id_,
             mcr_,
             lfr_,
             sfr_,
-        } => try_initialize_config(deps, info, clt, c_decimal_, pool_id_, mcr_, lfr_, sfr_),
+        } => try_set_vault_config(deps, info, clt, c_decimal_, pool_id_, mcr_, lfr_, sfr_),
     }
 }
 
-pub fn try_initialize_config(
+pub fn try_initialize(deps: DepsMut, info: MessageInfo, vault_code_id_: u64, v1_: Addr, stablecoin_: Addr, admin_: Addr) -> Result<Response, ContractError> {
+    CONFIG.update(deps.storage, |config_opt| -> Result<_, ContractError> {
+        let mut config = config_opt;
+        Ok(config)
+
+    })?;
+    Ok(Response::new()
+        .add_attribute("method", "try_initialize")
+        .add_attribute("vault_code_id_", vault_code_id_.to_string())
+        .add_attribute("v1", v1_.to_string())
+        .add_attribute("stablecoin", stablecoin_.to_string())
+        .add_attribute("admin", admin_.to_string()))
+}
+
+pub fn try_set_vault_config(
     deps: DepsMut,
     info: MessageInfo,
     clt: String,
@@ -114,7 +126,7 @@ pub fn try_create_vault(
                 CosmosMsg::Wasm(WasmMsg::Execute {
                     contract_addr: config.v1.to_string(),
                     funds: vec![],
-                    msg: to_binary(&primitives::nft::msg::Mint::<Extension> {
+                    msg: to_binary(&primitives::nft::msg::ExecuteMsg::Mint::<Extension> {
                         token_id: token_id.clone(),
                         owner: info.sender.to_string(),
                         token_uri: Some(token_uri.clone()),
