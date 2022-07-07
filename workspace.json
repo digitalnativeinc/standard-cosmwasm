@@ -6,6 +6,7 @@
     "primitives": "contracts/primitives",
     "token": "contracts/token",
     "vault": "contracts/vault",
-    "vault_manager": "contracts/vault_manager"
+    "vault_manager": "contracts/vault_manager",
+    "vault_factory": "contracts/vault_factory"
   }
 }

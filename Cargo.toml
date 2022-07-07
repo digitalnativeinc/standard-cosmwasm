@@ -4,5 +4,6 @@ members = [
     "contracts/vault_manager",
     "contracts/nft",
     "contracts/primitives",
-    "contracts/token"
+    "contracts/token",
+    "contracts/vault_factory"
 ]

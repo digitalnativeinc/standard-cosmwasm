@@ -1,5 +1,5 @@
 [package]
-name = "vault_manager"
+name = "vault_factory"
 version = "0.1.0"
 description = "A cosmwasm template contract with osmosis bindings"
 authors = ["Hyungsuk Kang<hskang9@gmail.com"]
@@ -57,9 +57,7 @@ cw20 = { version = "0.13.4" }
 schemars = "0.8.8"
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
-osmo-bindings = "0.5.1"
-primitives = {path="../primitives"}
-
+primitives = { path="../primitives" }
 
 [dev-dependencies]
 cosmwasm-schema = "1.0.0"

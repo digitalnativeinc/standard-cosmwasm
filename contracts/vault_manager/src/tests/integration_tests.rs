@@ -7,9 +7,9 @@ mod tests {
 
     pub fn contract_template() -> Box<dyn Contract<Empty>> {
         let contract = ContractWrapper::new(
-            crate::contract::execute,
-            crate::contract::instantiate,
-            crate::contract::query,
+            crate::contract::execute::execute,
+            crate::contract::instantiate::instantiate,
+            crate::contract::query::query,
         );
         Box::new(contract)
     }

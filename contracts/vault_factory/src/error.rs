@@ -9,15 +9,6 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
-    #[error("Unauthorized")]
-    Uninitialized {},
-
-    #[error("InvalidCDP")]
-    InvalidCDP {},
-
-    #[error("CollateralNotRegistered denom: {denom:?}")]
-    CollateralNotRegistered {denom: String},
-
     #[error("Custom Error val: {val:?}")]
     CustomError { val: String },
     // Add any other custom errors you like here.
