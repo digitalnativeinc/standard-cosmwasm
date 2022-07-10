@@ -9,6 +9,12 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("NotRegisteredCollateral: registered = {registered:?} but input = {input:?}")]
+    NotRegisteredCollateral {
+        registered: String,
+        input: String
+    },
+
     #[error("Custom Error val: {val:?}")]
     CustomError { val: String },
     // Add any other custom errors you like here.

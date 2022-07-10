@@ -3,7 +3,7 @@ members = [
     "contracts/vault",
     "contracts/vault_manager",
     "contracts/nft",
-    "contracts/primitives",
     "contracts/token",
-    "contracts/vault_factory"
+    "contracts/tokenfactory",
+    "packages/*"
 ]

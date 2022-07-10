@@ -1,6 +1,6 @@
 [package]
 name = "vault_manager"
-version = "0.1.0"
+version = "0.0.0"
 description = "A cosmwasm template contract with osmosis bindings"
 authors = ["Hyungsuk Kang<hskang9@gmail.com"]
 edition = "2018"
@@ -58,7 +58,7 @@ schemars = "0.8.8"
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.31" }
 osmo-bindings = "0.5.1"
-primitives = {path="../primitives"}
+primitives = {path="../../packages/primitives"}
 
 
 [dev-dependencies]

@@ -6,7 +6,7 @@ use crate::state::{VAULTCONFIG, CONFIG};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<OsmosisQuery>,
     _env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
@@ -25,7 +25,7 @@ pub fn execute(
     }
 }
 
-pub fn try_initialize(deps: DepsMut, info: MessageInfo, v1_: String, stablecoin_: String, factory_: String, admin_: String, vault_code_id_: u64) -> Result<Response, ContractError> {
+pub fn try_initialize(deps: DepsMut<OsmosisQuery>, info: MessageInfo, v1_: String, stablecoin_: String, factory_: String, admin_: String, vault_code_id_: u64) -> Result<Response, ContractError> {
     let config = CONFIG
         .may_load(deps.storage)?
         .ok_or(ContractError::Uninitialized {})?;
@@ -59,7 +59,7 @@ pub fn try_initialize(deps: DepsMut, info: MessageInfo, v1_: String, stablecoin_
 }
 
 pub fn try_set_vault_config(
-    deps: DepsMut,
+    deps: DepsMut<OsmosisQuery>,
     info: MessageInfo,
     clt: String,
     c_decimal_: u64,
@@ -103,7 +103,7 @@ pub fn try_set_vault_config(
 }
 
 pub fn try_create_vault(
-    deps: DepsMut,
+    deps: DepsMut<OsmosisQuery>,
     info: MessageInfo,
     d_amount: Uint128,
 ) -> Result<Response, ContractError> {

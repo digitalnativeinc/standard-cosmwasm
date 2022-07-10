@@ -488,6 +488,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "osmo-bindings"
+version = "0.6.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "schemars",
+ "serde",
+]
+
+[[package]]
+name = "osmo-bindings-test"
+version = "0.6.0"
+dependencies = [
+ "anyhow",
+ "cosmwasm-std",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "itertools",
+ "osmo-bindings 0.6.0",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "pkcs8"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -512,6 +537,7 @@ dependencies = [
  "cw2",
  "cw20",
  "cw721",
+ "osmo-bindings 0.6.0",
  "schemars",
  "serde",
  "thiserror",
@@ -773,6 +799,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokenfactory"
+version = "0.6.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw2",
+ "osmo-bindings 0.6.0",
+ "osmo-bindings-test",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "typenum"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -809,25 +852,7 @@ dependencies = [
  "cw-utils",
  "cw2",
  "cw20",
- "primitives",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "vault_factory"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-controllers",
- "cw-multi-test",
- "cw-storage-plus",
- "cw-utils",
- "cw2",
- "cw20",
+ "osmo-bindings 0.6.0",
  "primitives",
  "schemars",
  "serde",
@@ -836,7 +861,7 @@ dependencies = [
 
 [[package]]
 name = "vault_manager"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -847,7 +872,7 @@ dependencies = [
  "cw-utils",
  "cw2",
  "cw20",
- "osmo-bindings",
+ "osmo-bindings 0.5.1",
  "primitives",
  "schemars",
  "serde",

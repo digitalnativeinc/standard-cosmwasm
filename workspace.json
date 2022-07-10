@@ -3,10 +3,10 @@
   "version": 2,
   "projects": {
     "nft": "contracts/nft",
-    "primitives": "contracts/primitives",
+    "primitives": "packages/primitives",
     "token": "contracts/token",
     "vault": "contracts/vault",
     "vault_manager": "contracts/vault_manager",
-    "vault_factory": "contracts/vault_factory"
+    "tokenfactory": "contracts/tokenfactory"
   }
 }

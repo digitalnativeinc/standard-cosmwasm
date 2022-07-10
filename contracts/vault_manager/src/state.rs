@@ -1,14 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::Addr;
+use cosmwasm_std::Uint128;
 use cw_storage_plus::{Item, Map};
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct State {
-    pub count: i32,
-    pub owner: Addr,
-}
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, Default)]
@@ -27,6 +21,7 @@ pub struct VaultConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, Default)]
 pub struct Config {
+    pub count: u64,
     pub v1: String,
     pub stablecoin: String,
     pub factory: String,
@@ -35,5 +30,13 @@ pub struct Config {
     pub initialized: bool
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, Default)]
+pub struct Reserve {
+    pub vault_id: u64,
+    pub amount: Uint128,
+    pub to: String
+}
+
 pub const VAULTCONFIG: Map<String, VaultConfig> = Map::new("vault_config");
 pub const CONFIG: Item<Config> = Item::new("config");
+pub const RESERVE: Item<Reserve> = Item::new("reserve");

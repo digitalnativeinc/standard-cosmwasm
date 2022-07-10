@@ -6,16 +6,14 @@ use cw_storage_plus::Item;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct State {
-    pub count: i32,
-    pub owner: Addr,
-    pub manager: Addr,
-    pub factory: Addr,
-    pub debt: Uint128,
-    pub collateral: String,
     pub vault_id: u64,
+    pub manager: String,
+    pub collateral: String,
+    pub debt: String,
+    pub v1: String,
     pub borrow: Uint128,
-    pub last_updated: Timestamp,
-    pub ex_sfr: u128
+    pub last_updated: u64,
+    pub ex_sfr: Uint128
 }
 
 pub const STATE: Item<State> = Item::new("state");

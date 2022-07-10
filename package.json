@@ -3,16 +3,16 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build:cloud": "NX_BRANCH=testing npx nx build",
     "wasm": "nx wasm",
     "generate": "nx generate nxcw:osmosis",
     "schema": "nx schema",
-    "test": "nx test"
+    "test": "nx test",
+    "optimize": "nx optimize"
   },
   "private": true,
   "dependencies": {
     "node-json-minify": "^3.0.0",
-    "nxcw": "^0.0.4"
+    "nxcw": "^0.0.5"
   },
   "devDependencies": {
     "@nrwl/cli": "14.3.6",
