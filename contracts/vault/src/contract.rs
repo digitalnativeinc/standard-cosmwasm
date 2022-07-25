@@ -1,16 +1,63 @@
-use cosmwasm_std::{to_binary, BankMsg, Coin, CosmosMsg, QueryRequest, Uint128, WasmQuery};
-use osmo_bindings::{OsmosisMsg, OsmosisQuery, SpotPriceResponse, Swap};
-use osmosis_std::{
-    cosmos_sdk_proto::cosmos::bank::v1beta1::MsgSend,
-    types::osmosis::{gamm::v1beta1::MsgJoinPool, tokenfactory::v1beta1::MsgBurn},
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::entry_point;
+use cosmwasm_std::{
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, QueryRequest, Response, StdResult,
+    WasmQuery,
 };
+use cw2::set_contract_version;
+use osmo_bindings::OsmosisQuery;
+use primitives::vault_manager::msg::VaultConfigResponse;
+
+use crate::error::ContractError;
+use crate::msg::{StateResponse, VaultBalanceResponse};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::state::{State, STATE};
+use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Uint128};
+use osmosis_std::types::osmosis::{gamm::v1beta1::MsgJoinPool, tokenfactory::v1beta1::MsgBurn};
 use primitives::{
     functions::{_cr, _is_valid_cdp},
-    vault::{self, functions::query_spot_price},
-    vault_manager::msg::{ConfigResponse, VaultConfigResponse},
+    vault_manager::msg::ConfigResponse,
 };
 
-use super::*;
+// version info for migration info
+const CONTRACT_NAME: &str = "crates.io:stnd-vault";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn instantiate(
+    deps: DepsMut<OsmosisQuery>,
+    _env: Env,
+    info: MessageInfo,
+    msg: InstantiateMsg,
+) -> Result<Response, ContractError> {
+    let vault_config: VaultConfigResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: msg.manager.clone(),
+            msg: to_binary(&primitives::vault_manager::msg::QueryMsg::GetVaultConfig {
+                clt: msg.collateral.clone(),
+            })?,
+        }))?;
+
+    let state = State {
+        vault_id: msg.vault_id,
+        manager: msg.manager,
+        debt: msg.debt,
+        collateral: msg.collateral,
+        borrow: msg.borrow,
+        last_updated: msg.created_at,
+        ex_sfr: vault_config.sfr,
+        v1: msg.v1,
+    };
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    // Set NFT lock
+    STATE.save(deps.storage, &state)?;
+
+    Ok(Response::new()
+        .add_attribute("method", "instantiate")
+        .add_attribute("vault_id", msg.vault_id.to_string()))
+}
+
+//pub mod execute;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
@@ -98,7 +145,7 @@ pub fn try_close_vault(
         msg: to_binary(&primitives::vault_manager::msg::QueryMsg::GetConfig {})?,
     }))?;
 
-    // add msg_join_pool
+    // send back clt
     let send_back_clt: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
         to_address: info.sender.to_string(),
         amount: vec![c],
@@ -352,26 +399,34 @@ pub fn try_pay_debt(
         return Err(ContractError::Unauthorized {});
     }
 
-    let c = deps
-        .querier
-        .query_balance(&env.contract.address, state.collateral)?;
-    let d = deps
-        .querier
-        .query_balance(&env.contract.address, state.debt.clone())?;
+    // check stablecoin input
+    let deposit = info.funds[0].clone();
+    if state.debt != deposit.denom {
+        return Err(ContractError::NotRegisteredCollateral {
+            registered: state.debt,
+            input: info.funds[0].clone().denom,
+        });
+    }
+
+    // get vault config and config
+    let config: ConfigResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: state.manager.clone(),
+        msg: to_binary(&primitives::vault_manager::msg::QueryMsg::GetConfig {})?,
+    }))?;
 
     let vault_config: VaultConfigResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: state.manager.clone(),
             msg: to_binary(&primitives::vault_manager::msg::QueryMsg::GetVaultConfig {
-                clt: c.denom.clone(),
+                clt: state.collateral,
             })?,
         }))?;
 
     // process fees in sfr
-    let spot_priced = OsmosisQuery::spot_price(vault_config.pool_id, &d.denom, "g-usdc");
+    let spot_priced = OsmosisQuery::spot_price(vault_config.pool_id, &deposit.denom, "g-usdc");
     let query = QueryRequest::from(spot_priced);
     let d_price: Uint128 = deps.querier.query(&query)?;
-    let d_value = d_price * d.amount;
+    let d_value = d_price * deposit.amount;
     // (duration in months with 6 precision) * (sfr * assetValue/100(with 5decimals))
     let duration = ((env.block.time.seconds() - state.last_updated) * u64::pow(10, 6)) / 259200;
     let duration_v = (Uint128::from(duration) * d_value) / Uint128::from(u64::pow(10, 6));
@@ -382,13 +437,32 @@ pub fn try_pay_debt(
         Ok(state)
     })?;
 
-    // check stablecoin input
+    let send_fee: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
+        to_address: config.admin.to_string(),
+        amount: vec![Coin {
+            denom: deposit.denom.clone(),
+            amount: fee,
+        }],
+    });
 
-    // send fee
+    let deduct_fee = deposit.amount - fee;
 
-    // burn stables
+    let osmo_d = osmosis_std::cosmos_sdk_proto::cosmos::base::v1beta1::Coin {
+        denom: deposit.denom.clone(),
+        amount: deduct_fee.to_string(),
+    };
 
-    Ok(Response::new().add_attribute("method", "pay_debt"))
+    // burn stablecoins
+    let burn_stables: CosmosMsg = MsgBurn {
+        sender: config.admin,
+        amount: Some(osmo_d),
+    }
+    .into();
+
+    Ok(Response::new()
+        .add_attribute("method", "pay_debt")
+        .add_message(send_fee)
+        .add_message(burn_stables))
 }
 
 pub fn try_borrow_more(
@@ -414,4 +488,44 @@ pub fn try_borrow_more(
         Ok(state)
     })?;
     Ok(Response::new().add_attribute("method", "borrow_more"))
+}
+
+//pub mod query;
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::GetState {} => to_binary(&query_state(deps)?),
+        QueryMsg::GetBalances {} => to_binary(&query_vault_balances(deps, env)?),
+    }
+}
+
+fn query_state(deps: Deps) -> StdResult<StateResponse> {
+    let state = STATE.load(deps.storage)?;
+
+    let resp = StateResponse {
+        vault_id: state.vault_id,
+        manager: state.manager,
+        collateral: state.collateral,
+        debt: state.debt,
+        v1: state.v1,
+        borrow: state.borrow,
+        last_updated: state.last_updated,
+        sfr: state.ex_sfr,
+    };
+    Ok(resp)
+}
+
+fn query_vault_balances(deps: Deps, env: Env) -> StdResult<VaultBalanceResponse> {
+    let state = STATE.load(deps.storage)?;
+
+    let c = deps
+        .querier
+        .query_balance(&env.contract.address, state.collateral)?;
+    let d = deps
+        .querier
+        .query_balance(&env.contract.address, state.debt.clone())?;
+
+    let resp = VaultBalanceResponse { c, d };
+    Ok(resp)
 }
