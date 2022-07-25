@@ -1,6 +1,9 @@
 use cosmwasm_std::{to_binary, BankMsg, Coin, CosmosMsg, QueryRequest, Uint128, WasmQuery};
 use osmo_bindings::{OsmosisMsg, OsmosisQuery, SpotPriceResponse, Swap};
-use osmosis_std::{types::osmosis::{gamm::v1beta1::MsgJoinPool, tokenfactory::v1beta1::MsgBurn}, cosmos_sdk_proto::cosmos::bank::v1beta1::MsgSend};
+use osmosis_std::{
+    cosmos_sdk_proto::cosmos::bank::v1beta1::MsgSend,
+    types::osmosis::{gamm::v1beta1::MsgJoinPool, tokenfactory::v1beta1::MsgBurn},
+};
 use primitives::{
     functions::{_cr, _is_valid_cdp},
     vault::{self, functions::query_spot_price},
@@ -24,7 +27,7 @@ pub fn execute(
         ExecuteMsg::DepositCollateral {} => try_deposit_collateral(deps, env, info),
         ExecuteMsg::BorrowMore { amount } => todo!(),
         ExecuteMsg::Paydebt { amount } => try_pay_debt(deps, env, info, amount),
-        ExecuteMsg::CloseVault {  } => try_close_vault(deps, env, info),
+        ExecuteMsg::CloseVault {} => try_close_vault(deps, env, info),
     }
 }
 
@@ -68,7 +71,7 @@ pub fn try_close_vault(
     let query = QueryRequest::from(spot_priced);
     let d_price = deps.querier.query(&query)?;
 
-    if _is_valid_cdp(
+    if !_is_valid_cdp(
         c_price,
         d_price,
         c.amount,
@@ -76,7 +79,7 @@ pub fn try_close_vault(
         vault_config.c_decimal,
         vault_config.mcr,
     ) {
-        return Err(ContractError::ValidCDP {
+        return Err(ContractError::InvalidCDP {
             input: _cr(
                 c_price,
                 d_price,
@@ -95,8 +98,6 @@ pub fn try_close_vault(
         msg: to_binary(&primitives::vault_manager::msg::QueryMsg::GetConfig {})?,
     }))?;
 
-    
-    
     // add msg_join_pool
     let send_back_clt: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
         to_address: info.sender.to_string(),
@@ -110,14 +111,14 @@ pub fn try_close_vault(
     let d_value = d_price * d.amount;
     // (duration in months with 6 precision) * (sfr * assetValue/100(with 5decimals))
     let duration = ((env.block.time.seconds() - state.last_updated) * u64::pow(10, 6)) / 259200;
-    let duration_v = (duration * d_value) / u64::pow(10, 6);
-    let fee = duration_v * vault_config.sfr/10000000;
-    
+    let duration_v = (Uint128::from(duration) * d_value) / Uint128::from(u64::pow(10, 6));
+    let fee = duration_v * Uint128::from(vault_config.sfr) / Uint128::from(10000000u64);
+
     let send_fee: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
         to_address: config.admin.to_string(),
         amount: vec![Coin {
-            denom: d.denom,
-            amount: fee
+            denom: d.denom.clone(),
+            amount: fee,
         }],
     });
 
@@ -125,7 +126,7 @@ pub fn try_close_vault(
 
     let osmo_d = osmosis_std::cosmos_sdk_proto::cosmos::base::v1beta1::Coin {
         denom: d.denom.clone(),
-        amount: deduct_fee.to_string()
+        amount: deduct_fee.to_string(),
     };
 
     // burn stablecoins
@@ -138,6 +139,7 @@ pub fn try_close_vault(
     Ok(Response::new()
         .add_attribute("method", "liquidate")
         .add_message(send_back_clt)
+        .add_message(send_fee)
         .add_message(burn_stables))
 }
 
@@ -206,11 +208,12 @@ pub fn try_liquidate(
     };
     // add msg_join_pool
     let msg_join_pool: CosmosMsg = MsgJoinPool {
-        sender: config.admin,
+        sender: config.admin.clone(),
         pool_id: vault_config.pool_id,
         share_out_amount: "1000".to_string(),
-        token_in_maxs: vec![osmo_c]
-    }.into();
+        token_in_maxs: vec![osmo_c],
+    }
+    .into();
 
     // burn stablecoins
     let burn_stables: CosmosMsg = MsgBurn {
@@ -349,12 +352,42 @@ pub fn try_pay_debt(
         return Err(ContractError::Unauthorized {});
     }
 
-    // process fee from sfr
+    let c = deps
+        .querier
+        .query_balance(&env.contract.address, state.collateral)?;
+    let d = deps
+        .querier
+        .query_balance(&env.contract.address, state.debt.clone())?;
+
+    let vault_config: VaultConfigResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: state.manager.clone(),
+            msg: to_binary(&primitives::vault_manager::msg::QueryMsg::GetVaultConfig {
+                clt: c.denom.clone(),
+            })?,
+        }))?;
+
+    // process fees in sfr
+    let spot_priced = OsmosisQuery::spot_price(vault_config.pool_id, &d.denom, "g-usdc");
+    let query = QueryRequest::from(spot_priced);
+    let d_price: Uint128 = deps.querier.query(&query)?;
+    let d_value = d_price * d.amount;
+    // (duration in months with 6 precision) * (sfr * assetValue/100(with 5decimals))
+    let duration = ((env.block.time.seconds() - state.last_updated) * u64::pow(10, 6)) / 259200;
+    let duration_v = (Uint128::from(duration) * d_value) / Uint128::from(u64::pow(10, 6));
+    let fee = duration_v * Uint128::from(vault_config.sfr) / Uint128::from(10000000u64);
     STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
         state.borrow = amount;
         state.last_updated = env.block.time.seconds();
         Ok(state)
     })?;
+
+    // check stablecoin input
+
+    // send fee
+
+    // burn stables
+
     Ok(Response::new().add_attribute("method", "pay_debt"))
 }
 
