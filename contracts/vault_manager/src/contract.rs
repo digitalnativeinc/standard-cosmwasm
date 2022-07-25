@@ -136,8 +136,6 @@ pub fn try_set_vault_config(
         return Err(ContractError::Unauthorized {});
     }
 
-    // TODO: check whether the pool includes stablecoin
-
     // Add config for the collateral
     VAULTCONFIG.update(
         deps.storage,
@@ -301,8 +299,7 @@ pub fn reply(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetVaultConfig { clt } => to_binary(&query_vault_config(deps, clt)?),
-        QueryMsg::GetConfig {} => to_binary(&query_config(deps)?),
-        // QueryMsg::GetAssetPrice {} => to_binary(&query_asset_price(deps)?)
+        QueryMsg::GetConfig {} => to_binary(&query_config(deps)?)
     }
 }
 

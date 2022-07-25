@@ -22,7 +22,7 @@ pub enum ExecuteMsg {
     DepositCollateral {},
     BorrowMore { amount: Uint128 },
     Paydebt { amount: Uint128 },
-    CloseVault { amount: Uint128}
+    CloseVault { }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
