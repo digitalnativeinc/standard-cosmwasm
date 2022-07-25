@@ -12,7 +12,7 @@
   "private": true,
   "dependencies": {
     "node-json-minify": "^3.0.0",
-    "nxcw": "^0.0.5"
+    "nxcw": "^0.0.7"
   },
   "devDependencies": {
     "@nrwl/cli": "14.3.6",

@@ -1,4 +1,4 @@
-use cosmwasm_std::StdError;
+use cosmwasm_std::{StdError, Uint128};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -8,6 +8,18 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized {},
+
+    #[error("InvalidCDP mcr = {mcr:?} but input = {input:?}")]
+    InvalidCDP {
+        input: Uint128,
+        mcr: u64
+    },
+
+    #[error("ValidCDP mcr = {mcr:?} but input = {input:?}")]
+    ValidCDP {
+        input: Uint128,
+        mcr: u64
+    },
 
     #[error("NotRegisteredCollateral: registered = {registered:?} but input = {input:?}")]
     NotRegisteredCollateral {

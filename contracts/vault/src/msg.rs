@@ -1,4 +1,4 @@
-use cosmwasm_std::{Uint128, Addr};
+use cosmwasm_std::{Uint128, Addr, Coin};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +19,7 @@ pub enum ExecuteMsg {
     // vault custom methods
     Liquidate {},
     WithdrawCollateral { amount: Uint128 },
-    DepositCollateral { amount: Uint128},
+    DepositCollateral {},
     BorrowMore { amount: Uint128 },
     Paydebt { amount: Uint128 },
     CloseVault { amount: Uint128}
@@ -28,7 +28,8 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    GetState {}
+    GetState {},
+    GetBalances {}
 }
 
 // We define a custom struct for each query response
@@ -40,8 +41,14 @@ pub struct StateResponse {
     pub debt: String,
     pub v1: String,
     pub borrow: Uint128,
-    pub created_at: u64,
     pub last_updated: u64,
     pub sfr: u64
+}
+
+// We define a custom struct for each query response
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct VaultBalanceResponse {
+    pub c: Coin,
+    pub d: Coin
 }
 

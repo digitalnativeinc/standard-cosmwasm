@@ -13,7 +13,7 @@ pub struct State {
     pub v1: String,
     pub borrow: Uint128,
     pub last_updated: u64,
-    pub ex_sfr: Uint128
+    pub ex_sfr: u64
 }
 
 pub const STATE: Item<State> = Item::new("state");

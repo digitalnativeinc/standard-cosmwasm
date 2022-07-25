@@ -2,18 +2,19 @@ use crate::msg::{ConfigResponse, VaultConfigResponse};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, ReplyOn, Response, StdResult,
-    Uint128, WasmMsg, SubMsg, Reply
+    to_binary, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest, Reply,
+    ReplyOn, Response, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_utils::parse_reply_instantiate_data;
+use osmo_bindings::{OsmosisQuery, Swap};
 use primitives::functions::_is_valid_cdp;
-use primitives::nft::msg::{MintMsg, Extension};
-use osmo_bindings::OsmosisQuery;
+use primitives::nft::msg::{Extension, MintMsg};
+use primitives::vault::functions::query_spot_price;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{Config, CONFIG, VAULTCONFIG, RESERVE};
+use crate::state::{Config, CONFIG, RESERVE, VAULTCONFIG};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:stnd-vault-manager";
@@ -167,11 +168,12 @@ pub fn try_create_vault(
     info: MessageInfo,
     d_amount: Uint128,
 ) -> Result<Response, ContractError> {
-    // dAmount in 9 decimal precision
+    // dAmount in 6 decimal precision
+    let config = CONFIG
+        .may_load(deps.storage)?
+        .ok_or(ContractError::Uninitialized {})?;
     // TODO: get asset value of submitting collateral and stablecoin with decimal, set asset price with 3 decimal and get token decimal from the submitted token
-    // TODO: get asset price
-    let c_price = Uint128::from(1u64);
-    let d_price = Uint128::from(1u64);
+
     let input = &info.funds[0];
     let vault_config = VAULTCONFIG
         .may_load(deps.storage, (*input.denom).to_string())?
@@ -179,6 +181,20 @@ pub fn try_create_vault(
             denom: (*input.denom).to_string(),
         })?;
     // TODO: get asset
+    let c = &info.funds[0];
+    let d = Coin {
+        denom: config.stablecoin,
+        amount: d_amount,
+    };
+
+    // TODO: get asset price
+    let spot_price = OsmosisQuery::spot_price(vault_config.pool_id, &c.denom, "g-usdc");
+    let query = QueryRequest::from(spot_price);
+    let c_price = deps.querier.query(&query)?;
+    let spot_priced = OsmosisQuery::spot_price(vault_config.pool_id, &d.denom, "g-usdc");
+    let query = QueryRequest::from(spot_priced);
+    let d_price = deps.querier.query(&query)?;
+
     // calculate cdp
     if _is_valid_cdp(
         c_price,
@@ -188,13 +204,16 @@ pub fn try_create_vault(
         vault_config.c_decimal,
         vault_config.mcr,
     ) {
-
-        let config = CONFIG.update(deps.storage, | mut config | -> Result<_, ContractError> {
+        let config = CONFIG.update(deps.storage, |mut config| -> Result<_, ContractError> {
             config.count += 1;
             Ok(config)
         })?;
 
-        let reserve = crate::state::Reserve { vault_id: config.count, amount: d_amount, to: info.sender.to_string() };
+        let reserve = crate::state::Reserve {
+            vault_id: config.count,
+            amount: d_amount,
+            to: info.sender.to_string(),
+        };
 
         RESERVE.save(deps.storage, &reserve)?;
 
@@ -227,46 +246,55 @@ pub fn try_create_vault(
 
 /// This just stores the result for future query
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut<OsmosisQuery>, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-    
+pub fn reply(
+    deps: DepsMut<OsmosisQuery>,
+    _env: Env,
+    msg: Reply,
+) -> Result<Response, ContractError> {
     let result = match parse_reply_instantiate_data(msg) {
         Ok(res) => {
             let vault_contract = res.contract_address;
             let config = CONFIG.load(deps.storage)?;
             let reserve = RESERVE.load(deps.storage)?;
-            Ok(Response::new().add_attributes(vec![
-                ("vault_contract_addr", vault_contract),
-            ]).add_messages(vec![
-                // Mint V1
-                CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: config.v1.to_string(),
-                    funds: vec![],
-                    msg: to_binary(&primitives::nft::msg::ExecuteMsg::Mint(MintMsg::<Extension> {
-                        token_id: reserve.vault_id.to_string(),
-                        owner: reserve.to.clone(),
-                        token_uri: None,
-                        extension: None,
-                    }))?,
-                }),
-                // Mint Stablecoin
-                CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: config.stablecoin,
-                    funds: vec![],
-                    msg: to_binary(&primitives::token::msg::ExecuteMsg::Mint {
-                        recipient: reserve.to,
-                        amount: reserve.amount,
-                    })?,
-                }),
-            ]))
-        },
-        Err(e) => {
-            Err(ContractError::CustomError { val: (e.to_string()) })
+            Ok(Response::new()
+                .add_attributes(vec![("vault_contract_addr", vault_contract)])
+                .add_messages(vec![
+                    // Mint V1
+                    CosmosMsg::Wasm(WasmMsg::Execute {
+                        contract_addr: config.v1.to_string(),
+                        funds: vec![],
+                        msg: to_binary(&primitives::nft::msg::ExecuteMsg::Mint(MintMsg::<
+                            Extension,
+                        > {
+                            token_id: reserve.vault_id.to_string(),
+                            owner: reserve.to.clone(),
+                            token_uri: None,
+                            extension: None,
+                        }))?,
+                    }),
+                    // Mint Stablecoin
+                    CosmosMsg::Wasm(WasmMsg::Execute {
+                        contract_addr: config.stablecoin,
+                        funds: vec![],
+                        msg: to_binary(&primitives::token::msg::ExecuteMsg::Mint {
+                            recipient: reserve.to,
+                            amount: reserve.amount,
+                        })?,
+                    }),
+                ]))
         }
-    }; 
+        Err(e) => Err(ContractError::CustomError {
+            val: (e.to_string()),
+        }),
+    };
     // reset reserve
-    let reserve = crate::state::Reserve { vault_id: 0, amount: Uint128::zero(), to: "".to_string() };
+    let reserve = crate::state::Reserve {
+        vault_id: 0,
+        amount: Uint128::zero(),
+        to: "".to_string(),
+    };
     RESERVE.save(deps.storage, &reserve)?;
-    return result; 
+    return result;
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
